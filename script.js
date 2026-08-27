@@ -46,3 +46,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// تحميل التصاميم المضافة من لوحة التحكم وعرضها في الموقع
+document.addEventListener('DOMContentLoaded', () => {
+  const portfolioGrid = document.getElementById('portfolio-grid');
+  const emptyMessage = document.getElementById('empty-message');
+
+  // جلب التصاميم المحفوظة محلياً (أو يمكن ربطها بقاعدة بيانات لاحقاً)
+  let savedDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+
+  if (savedDesigns.length > 0 && portfolioGrid) {
+    if (emptyMessage) emptyMessage.style.display = 'none';
+
+    savedDesigns.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'portfolio-card';
+      card.innerHTML = `
+                <div class="card-image-wrapper">
+                    <img src="${item.url}" alt="${item.title}" class="portfolio-img">
+                    <div class="card-overlay">
+                        <h3>${item.title}</h3>
+                        <p>${item.desc || ''}</p>
+                        <button class="view-btn">عرض التصميم</button>
+                    </div>
+                </div>
+            `;
+      portfolioGrid.appendChild(card);
+    });
+  }
+});
