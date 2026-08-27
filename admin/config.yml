@@ -1,0 +1,22 @@
+backend:
+  name: git-gateway
+  branch: main
+
+
+display_url: /
+logo_url: /images/logo.png 
+
+media_folder: "images/uploads"
+public_folder: "/images/uploads"
+
+collections:
+  - name: "portfolio"
+    label: "معرض الأعمال"
+    label_singular: "تصميم"
+    folder: "content/portfolio"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "عنوان التصميم", name: "title", widget: "string"}
+      - {label: "صورة الفوتوشوب", name: "image", widget: "image"}
+      - {label: "الوصف والتقنيات", name: "body", widget: "markdown"}

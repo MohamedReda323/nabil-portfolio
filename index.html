@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nabil Ahmed | Graphic Designer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">NABIL<span>PORTFOLIO</span></a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#hero">الرئيسية</a></li>
+                    <li><a href="#portfolio">معرض الأعمال</a></li>
+                    <li><a href="#contact">التواصل</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section id="hero" class="hero-section">
+        <div class="container hero-content">
+            <h1 class="hero-title">معرض التصاميم والأعمال الفنية</h1>
+            <p class="hero-subtitle">مرحباً بك! هنا أشارك معك أحدث أعمال الفوتوشوب، التعديلات الرقمية، وتصاميم الهوية
+                البصرية بدقة عالية وفكر إبداعي.</p>
+            <a href="#portfolio" class="btn btn-primary">استكشف الأعمال</a>
+        </div>
+    </section>
+
+    <section id="portfolio" class="portfolio-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>أحدث التصاميم</h2>
+                <div class="line"></div>
+            </div>
+
+            <div class="portfolio-grid" id="portfolio-grid">
+            </div>
+
+            <div id="empty-message"
+                style="text-align: center; color: var(--text-muted); display: none; padding: 40px 0;">
+                لا توجد تصميمات مضافة حالياً. انتظرونا قريباً!
+            </div>
+        </div>
+    </section>
+
+    <div id="lightbox-modal" class="lightbox">
+        <span class="lightbox-close" id="lightbox-close">&times;</span>
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="صورة مكبرة">
+            <div class="lightbox-caption">
+                <h3 id="lightbox-title">عنوان التصميم</h3>
+                <p id="lightbox-desc">وصف التصميم والتقنيات المستخدمة</p>
+            </div>
+        </div>
+    </div>
+
+    <footer id="contact" class="footer">
+        <div class="container footer-content">
+            <p>© 2026 Nabil Ahmed</p>
+            <div class="social-links">
+                <a href="https://wa.me/201206584412" target="_blank">WhatsApp</a>
+                <a href="https://www.tiktok.com/@bolboool3" target="_blank">TikTok</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
