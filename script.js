@@ -9,62 +9,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const BIN_ID = "6a90da54f5f4af5e294bdd8f";
   const API_KEY = "$2a$10$4wACAkCehi/kP0C.y2pnZOO1Awruy6s95q/NLDwvyob7tOnZCoaFu";
+  const CACHE_KEY = "nabil_portfolio_cache";
 
-  // 1. جلب وعرض التصاميم من سحابة JSONBin مباشرة
+  // 1. عرض التصاميم المحفوظة فوراً من الذاكرة المحلية (لتسريع التحميل الأول)
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  if (cachedData) {
+    try {
+      const designs = JSON.parse(cachedData);
+      renderDesignsToDOM(designs);
+    } catch (e) {
+      console.error("خطأ في قراءة الذاكرة المؤقتة:", e);
+    }
+  }
+
+  // 2. جلب البيانات الحديثة من السحابة في الخلفية مع مهلة 8 ثوانٍ
   async function loadAndRenderPublicDesigns() {
     if (!portfolioGrid) return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 ثوانٍ لضمان التحميل مع الشبكات الضعيفة
 
     try {
       const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
         method: 'GET',
         headers: {
           'X-Master-Key': API_KEY
-        }
+        },
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`خطأ في الخادم: ${response.status}`);
       }
 
       const result = await response.json();
-
-      // قراءة البيانات كمصفوفة مباشرة من السحابة
       const designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
 
-      if (designs.length === 0) {
-        if (emptyMessage) emptyMessage.style.display = 'block';
-        portfolioGrid.innerHTML = '';
-        return;
-      }
+      // حدّث الذاكرة المحلية بالتصاميم الجديدة
+      localStorage.setItem(CACHE_KEY, JSON.stringify(designs));
 
-      if (emptyMessage) emptyMessage.style.display = 'none';
-      portfolioGrid.innerHTML = '';
-
-      designs.forEach(design => {
-        portfolioGrid.innerHTML += `
-            <div class="portfolio-card" style="background: var(--bg-card, #1e293b); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color, #334155); text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.3s;">
-                <img src="${design.url}" alt="${design.title}" class="portfolio-img" style="width: 100%; height: 240px; object-fit: cover;">
-                <div style="padding: 20px;" class="card-overlay">
-                    <h3 style="color: var(--text-main, #fff); margin-bottom: 10px; font-size: 1.2rem;">${design.title}</h3>
-                    <p style="color: var(--text-muted, #94a3b8); font-size: 0.95rem; line-height: 1.5;">${design.desc || ''}</p>
-                </div>
-            </div>
-        `;
-      });
-
-      // تفعيل تفاعل الـ Lightbox بعد تحميل الكروت ديناميكياً
-      initLightboxEvents();
+      // إعادة رسم الكروت بالتصاميم الجديدة
+      renderDesignsToDOM(designs);
 
     } catch (error) {
-      console.error("خطأ في جلب التصاميم من السحابة:", error);
-      if (emptyMessage) {
-        emptyMessage.innerText = 'فشل تحميل التصاميم من السحابة.';
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn("انتهت مهلة الاتصال بالسحابة، تم الاستعانة بالبيانات المخزنة إن وجدت.");
+      } else {
+        console.error("خطأ في جلب التصاميم:", error);
+      }
+
+      // إظهار رسالة فارغة فقط لو لم توجد أي تصاميم في الذاكرة
+      if (!cachedData && emptyMessage) {
         emptyMessage.style.display = 'block';
       }
     }
   }
 
-  // 2. إعدادات الـ Lightbox للصور
+  // دالة عرض الكروت على الصفحة
+  function renderDesignsToDOM(designs) {
+    if (!portfolioGrid) return;
+
+    if (!designs || designs.length === 0) {
+      if (emptyMessage) emptyMessage.style.display = 'block';
+      portfolioGrid.innerHTML = '';
+      return;
+    }
+
+    if (emptyMessage) emptyMessage.style.display = 'none';
+    portfolioGrid.innerHTML = '';
+
+    designs.forEach(design => {
+      portfolioGrid.innerHTML += `
+        <div class="portfolio-card" style="background: var(--bg-card, #1e293b); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color, #334155); text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.3s;">
+            <img src="${design.url}" alt="${design.title}" class="portfolio-img" style="width: 100%; height: 240px; object-fit: cover;" loading="lazy">
+            <div style="padding: 20px;" class="card-overlay">
+                <h3 style="color: var(--text-main, #fff); margin-bottom: 10px; font-size: 1.2rem;">${design.title}</h3>
+                <p style="color: var(--text-muted, #94a3b8); font-size: 0.95rem; line-height: 1.5;">${design.desc || ''}</p>
+            </div>
+        </div>
+      `;
+    });
+
+    initLightboxEvents();
+  }
+
+  // إعدادات عرض الصور بالحجم الكامل (Lightbox)
   function initLightboxEvents() {
     const cards = document.querySelectorAll('.portfolio-card');
 
@@ -101,6 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // تنفيذ التحميل عند فتح الصفحة
+  // تشغيل دالة التحميل
   loadAndRenderPublicDesigns();
 });
