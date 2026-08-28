@@ -208,7 +208,7 @@
                 const data = await res.json();
                 let allDesigns = data.record || [];
 
-                if (allDesigns.length === 0) {
+                if (!Array.isArray(allDesigns) || allDesigns.length === 0) {
                     listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
                     return;
                 }
@@ -233,14 +233,13 @@
             }
         }
 
-        // دالة ضغط الصورة لتصبح خفيفة ومناسبة للسحابة
-        function compressImage(file, callback) {
+        function compressAndResize(file, callback) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 const img = new Image();
                 img.onload = function () {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // تصغير العرض الأقصى لضمان خفة الحجم
+                    const MAX_WIDTH = 600; // تصغير المقاس لضمان سرعة الخادم
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
@@ -248,8 +247,7 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                    // تحويل الصورة لـ jpeg بجودة 0.7 لتكون صغيرة جداً وسريعة
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     callback(compressedDataUrl);
                 };
                 img.src = e.target.result;
@@ -268,32 +266,35 @@
                 return;
             }
 
-            status.innerText = 'جاري ضغط ورفع الصورة للسحابة... ⏳';
+            status.innerText = 'جاري معالجة ونشر التصميم... ⏳';
 
-            compressImage(fileInput.files[0], async function (base64Image) {
+            compressAndResize(fileInput.files[0], async function (base64Image) {
                 try {
+                    // 1. جلب البيانات الحالية
                     const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                         headers: { 'X-Master-Key': API_KEY }
                     });
                     const getData = await getRes.json();
-                    let allDesigns = getData.record || [];
+                    let allDesigns = getData.record;
 
-                    // لو الداتا مش مصفوفة، نخليها مصفوفة فاضية عشان منقوعش في خطأ
                     if (!Array.isArray(allDesigns)) {
                         allDesigns = [];
                     }
 
+                    // 2. إضافة التصميم الجديد
                     allDesigns.unshift({
                         title: title !== '' ? title : 'تصميم بدون عنوان',
                         desc: desc,
                         url: base64Image
                     });
 
+                    // 3. إرسال البيانات للسحابة مع تحديد الـ Content-Type بدقة
                     const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Master-Key': API_KEY
+                            'X-Master-Key': API_KEY,
+                            'X-Bin-Versioning': 'false'
                         },
                         body: JSON.stringify(allDesigns)
                     });
@@ -305,16 +306,16 @@
                         fileInput.value = '';
                         loadAdminDesignsCloud();
                     } else {
-                        status.innerText = 'فشل التحديث على السحابة (تأكد من الاتصال أو حجم البيانات).';
+                        status.innerText = 'فشل التحديث، حاول بجلد صورة أصغر.';
                     }
                 } catch (err) {
-                    status.innerText = 'حدث خطأ في الاتصال بالإنترنت.';
+                    status.innerText = 'حدث خطأ في الاتصال بالشبكة.';
                 }
             });
         }
 
         async function deleteDesignCloud(index) {
-            if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً من الموقع لكل الزوار؟')) {
+            if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً؟')) {
                 try {
                     const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                         headers: { 'X-Master-Key': API_KEY }
@@ -329,7 +330,8 @@
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-Master-Key': API_KEY
+                                'X-Master-Key': API_KEY,
+                                'X-Bin-Versioning': 'false'
                             },
                             body: JSON.stringify(allDesigns)
                         });
@@ -339,7 +341,7 @@
                         }
                     }
                 } catch (e) {
-                    alert('حدث خطأ أثناء الحذف.');
+                    alert('خطأ أثناء الحذف.');
                 }
             }
         }
