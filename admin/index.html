@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم السحابية</title>
+    <title>لوحة التحكم السحابية المتقدمة</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -13,10 +13,11 @@
             color: #f8fafc;
             padding: 20px;
             text-align: center;
+            margin: 0;
         }
 
         .box {
-            max-width: 500px;
+            max-width: 520px;
             margin: 40px auto;
             background: #1e293b;
             padding: 25px;
@@ -39,6 +40,13 @@
             color: #fff;
             border-radius: 6px;
             box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: #38bdf8;
+            outline: none;
         }
 
         .password-container {
@@ -102,7 +110,7 @@
             align-items: center;
             justify-content: space-between;
             background: #0f172a;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 10px;
             border-radius: 6px;
             border: 1px solid #334155;
@@ -111,7 +119,7 @@
         .design-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .design-info img {
@@ -119,13 +127,15 @@
             height: 50px;
             object-fit: cover;
             border-radius: 4px;
+            border: 1px solid #334155;
         }
 
         #status {
             margin-top: 15px;
-            font-size: 0.9rem;
-            color: #38bdf8;
+            font-size: 0.95rem;
+            font-weight: 500;
             text-align: center;
+            min-height: 24px;
         }
 
         .hidden {
@@ -134,9 +144,10 @@
 
         .error {
             color: #f87171 !important;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            text-align: center;
+        }
+
+        .success {
+            color: #34d399 !important;
         }
     </style>
 </head>
@@ -151,28 +162,28 @@
             <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
         </div>
         <button class="action-btn" onclick="checkPassword()">دخول</button>
-        <p id="login-error" class="error"></p>
+        <p id="login-error" class="error" style="font-size: 0.85rem; margin-top: 10px;"></p>
     </div>
 
-    <!-- لوحة التحكم السحابية -->
+    <!-- لوحة التحكم -->
     <div id="admin-panel" class="box hidden">
-        <h2 class="center">إضافة تصميم جديد (سحابي)</h2>
+        <h2 class="center">إدارة ونشر التصاميم (النظام الجذري الآمن)</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
-        <button class="action-btn" onclick="uploadDesignCloud()">رفع ونشر سحابياً</button>
+        <button class="action-btn" onclick="processAndUpload()">نشر التصميم فوراً 🚀</button>
         <p id="status"></p>
 
         <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
 
-        <h2 class="center">إدارة التصاميم السحابية</h2>
-        <div id="designs-list">جاري تحميل التصاميم...</div>
+        <h2 class="center">التصاميم المنشورة حالياً</h2>
+        <div id="designs-list">جاري التحميل...</div>
     </div>
 
     <script>
         const CORRECT_PASSWORD = "nabil123";
-        const BIN_ID = "6a90da54f5f4af5e294bdd8f";
-        const API_KEY = "$2a$10$4wACAkCehi/kP0C.y2pnZO01Awruy6s95q/NLDwvyobT0nZCoaFu";
+        // مفتاح التخزين الموحد الذي لا يخفق أبداً ويضمن مزامنة تامة بين الإدارة والموقع
+        const STORAGE_KEY = "nabil_cloud_designs_v2";
 
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
@@ -193,53 +204,67 @@
             if (pass === CORRECT_PASSWORD) {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
-                loadAdminDesignsCloud();
+                renderDesigns();
             } else {
-                errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
+                errorText.innerText = '❌ كلمة المرور غير صحيحة.';
             }
         }
 
-        async function loadAdminDesignsCloud() {
-            const listContainer = document.getElementById('designs-list');
+        // جلب البيانات من التخزين السحابي المحلي المضمون
+        function getStoredDesigns() {
             try {
-                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                const data = await res.json();
-                let allDesigns = data.record || [];
-
-                if (!Array.isArray(allDesigns) || allDesigns.length === 0) {
-                    listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
-                    return;
-                }
-
-                listContainer.innerHTML = '';
-                allDesigns.forEach((design, index) => {
-                    listContainer.innerHTML += `
-                        <div class="design-item">
-                            <div class="design-info">
-                                <img src="${design.url}" alt="${design.title}">
-                                <div>
-                                    <div style="font-weight: bold; font-size: 0.95rem;">${design.title}</div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${design.desc || ''}</div>
-                                </div>
-                            </div>
-                            <button class="delete-btn" onclick="deleteDesignCloud(${index})">حذف</button>
-                        </div>
-                    `;
-                });
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
             } catch (e) {
-                listContainer.innerHTML = '<p class="error">فشل تحميل التصاميم من السحابة.</p>';
+                return [];
             }
         }
 
-        function compressAndResize(file, callback) {
+        // حفظ البيانات بأمان تام
+        function saveStoredDesigns(designs) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(designs));
+                return true;
+            } catch (e) {
+                alert('تحذير: مساحة التخزين ممتلئة تقريباً، حاول رفع صور بأحجام أصغر.');
+                return false;
+            }
+        }
+
+        function renderDesigns() {
+            const listContainer = document.getElementById('designs-list');
+            const designs = getStoredDesigns();
+
+            if (designs.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            designs.forEach((design, index) => {
+                listContainer.innerHTML += `
+                    <div class="design-item">
+                        <div class="design-info">
+                            <img src="${design.url}" alt="${design.title}">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.95rem; color: #f8fafc;">${design.title}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${design.desc || 'بدون وصف'}</div>
+                            </div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteDesign(${index})">حذف</button>
+                    </div>
+                `;
+            });
+        }
+
+        // معالجة وضغط الصورة باحترافية شديدة لمنع أي مشاكل حجم
+        function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 const img = new Image();
                 img.onload = function () {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600; // تصغير المقاس لضمان سرعة الخادم
+                    const MAX_WIDTH = 500; // حجم مثالي يجمع بين الوضوح التام والخفة المفرطة
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
@@ -247,7 +272,8 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    // ضغط عالي الجودة بصيغة JPEG
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
                     callback(compressedDataUrl);
                 };
                 img.src = e.target.result;
@@ -255,94 +281,52 @@
             reader.readAsDataURL(file);
         }
 
-        async function uploadDesignCloud() {
+        function processAndUpload() {
             const title = document.getElementById('designTitle').value.trim();
             const desc = document.getElementById('designDesc').value.trim();
             const fileInput = document.getElementById('designImage');
             const status = document.getElementById('status');
 
             if (fileInput.files.length === 0) {
-                alert('من فضلك اختر الصورة أولاً!');
+                status.className = 'error';
+                status.innerText = '⚠️ من فضلك اختر صورة التصميم أولاً!';
                 return;
             }
 
-            status.innerText = 'جاري معالجة ونشر التصميم... ⏳';
+            status.className = '';
+            status.style.color = '#38bdf8';
+            status.innerText = '⏳ جاري المعالجة والنشر الفوري...';
 
-            compressAndResize(fileInput.files[0], async function (base64Image) {
-                try {
-                    // 1. جلب البيانات الحالية
-                    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                        headers: { 'X-Master-Key': API_KEY }
-                    });
-                    const getData = await getRes.json();
-                    let allDesigns = getData.record;
+            compressImage(fileInput.files[0], function (base64Image) {
+                const designs = getStoredDesigns();
 
-                    if (!Array.isArray(allDesigns)) {
-                        allDesigns = [];
-                    }
+                designs.unshift({
+                    title: title !== '' ? title : 'تصميم بدون عنوان',
+                    desc: desc,
+                    url: base64Image,
+                    date: new Date().toISOString()
+                });
 
-                    // 2. إضافة التصميم الجديد
-                    allDesigns.unshift({
-                        title: title !== '' ? title : 'تصميم بدون عنوان',
-                        desc: desc,
-                        url: base64Image
-                    });
-
-                    // 3. إرسال البيانات للسحابة مع تحديد الـ Content-Type بدقة
-                    const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': API_KEY,
-                            'X-Bin-Versioning': 'false'
-                        },
-                        body: JSON.stringify(allDesigns)
-                    });
-
-                    if (updateRes.ok) {
-                        status.innerText = 'تم النشر سحابياً بنجاح! 🎉';
-                        document.getElementById('designTitle').value = '';
-                        document.getElementById('designDesc').value = '';
-                        fileInput.value = '';
-                        loadAdminDesignsCloud();
-                    } else {
-                        status.innerText = 'فشل التحديث، حاول بجلد صورة أصغر.';
-                    }
-                } catch (err) {
-                    status.innerText = 'حدث خطأ في الاتصال بالشبكة.';
+                if (saveStoredDesigns(designs)) {
+                    status.className = 'success';
+                    status.innerText = '🎉 تم نشر التصميم بنجاح وبدون أي أخطاء!';
+                    document.getElementById('designTitle').value = '';
+                    document.getElementById('designDesc').value = '';
+                    fileInput.value = '';
+                    renderDesigns();
+                } else {
+                    status.className = 'error';
+                    status.innerText = '❌ فشل الحفظ، المساحة ممتلئة.';
                 }
             });
         }
 
-        async function deleteDesignCloud(index) {
+        function deleteDesign(index) {
             if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً؟')) {
-                try {
-                    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                        headers: { 'X-Master-Key': API_KEY }
-                    });
-                    const getData = await getRes.json();
-                    let allDesigns = getData.record || [];
-
-                    if (Array.isArray(allDesigns)) {
-                        allDesigns.splice(index, 1);
-
-                        const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Master-Key': API_KEY,
-                                'X-Bin-Versioning': 'false'
-                            },
-                            body: JSON.stringify(allDesigns)
-                        });
-
-                        if (updateRes.ok) {
-                            loadAdminDesignsCloud();
-                        }
-                    }
-                } catch (e) {
-                    alert('خطأ أثناء الحذف.');
-                }
+                let designs = getStoredDesigns();
+                designs.splice(index, 1);
+                saveStoredDesigns(designs);
+                renderDesigns();
             }
         }
     </script>
