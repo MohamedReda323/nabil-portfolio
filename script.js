@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       const result = await response.json();
-      const designs = result.record.designs || [];
+
+      // قراءة البيانات كمصفوفة مباشرة من السحابة
+      const designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
 
       if (designs.length === 0) {
         if (emptyMessage) emptyMessage.style.display = 'block';
