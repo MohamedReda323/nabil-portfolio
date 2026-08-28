@@ -154,21 +154,19 @@
         <p id="login-error" class="error"></p>
     </div>
 
-    <!-- لوحة التحكم الفعلية (الرفع والحذف) -->
+    <!-- لوحة التحكم الفعالة -->
     <div id="admin-panel" class="box hidden">
         <h2 class="center">إضافة تصميم جديد</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
-        <button class="action-btn" onclick="uploadDesign()">رفع ونشر التصميم</button>
+        <button class="action-btn" onclick="uploadDesignLocally()">حفظ ونشر التصميم</button>
         <p id="status"></p>
 
         <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
 
         <h2 class="center">إدارة التصاميم الحالية</h2>
-        <div id="designs-list">
-            <!-- سيتم تعبئة التصاميم هنا أوتوماتيكياً -->
-        </div>
+        <div id="designs-list"></div>
     </div>
 
     <script>
@@ -193,56 +191,55 @@
             if (pass === CORRECT_PASSWORD) {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
-                loadAdminDesigns(); // تحميل قائمة التصاميم للحذف
+                loadAdminDesigns();
             } else {
                 errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
             }
         }
 
-        async function uploadDesign() {
-            const title = document.getElementById('designTitle').value;
-            const desc = document.getElementById('designDesc').value;
+        // حفظ الصورة مباشرة محلياً بدون الحاجة لـ API خارجي يفشل
+        function uploadDesignLocally() {
+            const title = document.getElementById('designTitle').value.trim();
+            const desc = document.getElementById('designDesc').value.trim();
             const fileInput = document.getElementById('designImage');
             const status = document.getElementById('status');
 
-            if (!title || fileInput.files.length === 0) {
-                alert('من فضلك اكتب العنوان واختر الصورة!');
+            if (fileInput.files.length === 0) {
+                alert('من فضلك اختر الصورة أولاً!');
                 return;
             }
 
-            status.innerText = 'جاري رفع الصورة ونشرها... ⏳';
+            status.innerText = 'جاري حفظ التصميم... ⏳';
 
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
+            const file = fileInput.files[0];
+            const reader = new FileReader();
 
-            try {
-                const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
-                    method: 'POST',
-                    body: formData
+            reader.onload = function (event) {
+                const base64Image = event.target.result; // تحويل الصورة لكود نصي
+
+                let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+                allDesigns.unshift({
+                    title: title !== '' ? title : 'تصميم بدون عنوان',
+                    desc: desc,
+                    url: base64Image
                 });
-                const data = await res.json();
 
-                if (data.success) {
-                    const imageUrl = data.data.url;
-                    let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
-                    allDesigns.unshift({ title, desc, url: imageUrl });
-                    localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
+                localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
 
-                    status.innerText = 'تم النشر بنجاح! 🎉';
-                    document.getElementById('designTitle').value = '';
-                    document.getElementById('designDesc').value = '';
-                    fileInput.value = '';
-                    loadAdminDesigns(); // تحديث القائمة فوراً
-                } else {
-                    status.innerText = 'فشل الرفع، حاول مرة أخرى.';
-                }
-            } catch (error) {
-                status.innerText = 'حدث خطأ في الاتصال.';
-                console.error(error);
-            }
+                status.innerText = 'تم النشر بنجاح! 🎉';
+                document.getElementById('designTitle').value = '';
+                document.getElementById('designDesc').value = '';
+                fileInput.value = '';
+                loadAdminDesigns();
+            };
+
+            reader.onerror = function () {
+                status.innerText = 'حدث خطأ أثناء قراءة الصورة.';
+            };
+
+            reader.readAsDataURL(file);
         }
 
-        // عرض التصاميم في لوحة التحكم مع زر الحذف
         function loadAdminDesigns() {
             const listContainer = document.getElementById('designs-list');
             let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
@@ -269,13 +266,12 @@
             });
         }
 
-        // دالة الحذف
         function deleteDesign(index) {
             if (confirm('هل أنت متأكد من حذف هذا التصميم؟')) {
                 let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
-                allDesigns.splice(index, 1); // مسح العنصر المحدد
+                allDesigns.splice(index, 1);
                 localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
-                loadAdminDesigns(); // إعادة تحميل القائمة وتحديثها
+                loadAdminDesigns();
             }
         }
     </script>
