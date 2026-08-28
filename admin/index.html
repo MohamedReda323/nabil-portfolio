@@ -11,17 +11,34 @@
             font-family: 'Tajawal', sans-serif;
             background: #0f172a;
             color: #f8fafc;
-            padding: 40px;
+            padding: 20px;
             text-align: center;
         }
 
         .box {
-            max-width: 400px;
-            margin: 80px auto;
+            max-width: 500px;
+            margin: 40px auto;
             background: #1e293b;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            text-align: right;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 6px;
+            box-sizing: border-box;
         }
 
         .password-container {
@@ -33,11 +50,6 @@
         .password-container input {
             width: 100%;
             padding: 12px 45px 12px 12px;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: #fff;
-            border-radius: 6px;
-            box-sizing: border-box;
             margin: 0;
         }
 
@@ -51,25 +63,6 @@
             cursor: pointer;
             color: #94a3b8;
             font-size: 1.1rem;
-            width: auto;
-            margin: 0;
-            padding: 0;
-        }
-
-        .toggle-password:hover {
-            color: #38bdf8;
-        }
-
-        input[type="text"]:not(#adminPassword),
-        textarea {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: #fff;
-            border-radius: 6px;
-            box-sizing: border-box;
         }
 
         button.action-btn {
@@ -89,10 +82,50 @@
             background: #0ea5e9;
         }
 
+        .delete-btn {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .design-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0f172a;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+        }
+
+        .design-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .design-info img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
         #status {
             margin-top: 15px;
             font-size: 0.9rem;
             color: #38bdf8;
+            text-align: center;
         }
 
         .hidden {
@@ -103,6 +136,7 @@
             color: #f87171 !important;
             font-size: 0.85rem;
             margin-top: 5px;
+            text-align: center;
         }
     </style>
 </head>
@@ -110,7 +144,7 @@
 <body>
 
     <!-- شاشة تسجيل الدخول -->
-    <div id="login-box" class="box">
+    <div id="login-box" class="box center" style="max-width: 400px; margin: 80px auto;">
         <h2>تسجيل دخول الإدارة</h2>
         <div class="password-container">
             <input type="password" id="adminPassword" placeholder="اكتب كلمة المرور">
@@ -120,14 +154,21 @@
         <p id="login-error" class="error"></p>
     </div>
 
-    <!-- لوحة التحكم الفعلية (للرفع) -->
-    <div id="admin-panel" class="box hidden" style="max-width: 500px;">
-        <h2>إضافة تصميم جديد</h2>
+    <!-- لوحة التحكم الفعلية (الرفع والحذف) -->
+    <div id="admin-panel" class="box hidden">
+        <h2 class="center">إضافة تصميم جديد</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
         <button class="action-btn" onclick="uploadDesign()">رفع ونشر التصميم</button>
         <p id="status"></p>
+
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
+
+        <h2 class="center">إدارة التصاميم الحالية</h2>
+        <div id="designs-list">
+            <!-- سيتم تعبئة التصاميم هنا أوتوماتيكياً -->
+        </div>
     </div>
 
     <script>
@@ -136,7 +177,6 @@
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
             const toggleBtn = document.querySelector('.toggle-password');
-
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 toggleBtn.innerText = '🙈';
@@ -153,6 +193,7 @@
             if (pass === CORRECT_PASSWORD) {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
+                loadAdminDesigns(); // تحميل قائمة التصاميم للحذف
             } else {
                 errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
             }
@@ -187,16 +228,54 @@
                     allDesigns.unshift({ title, desc, url: imageUrl });
                     localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
 
-                    status.innerText = 'تم النشر بنجاح! 🎉 حدد صفحة الموقع الرئيسية لرؤية التغيير.';
+                    status.innerText = 'تم النشر بنجاح! 🎉';
                     document.getElementById('designTitle').value = '';
                     document.getElementById('designDesc').value = '';
                     fileInput.value = '';
+                    loadAdminDesigns(); // تحديث القائمة فوراً
                 } else {
                     status.innerText = 'فشل الرفع، حاول مرة أخرى.';
                 }
             } catch (error) {
                 status.innerText = 'حدث خطأ في الاتصال.';
                 console.error(error);
+            }
+        }
+
+        // عرض التصاميم في لوحة التحكم مع زر الحذف
+        function loadAdminDesigns() {
+            const listContainer = document.getElementById('designs-list');
+            let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+
+            if (allDesigns.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            allDesigns.forEach((design, index) => {
+                listContainer.innerHTML += `
+                    <div class="design-item">
+                        <div class="design-info">
+                            <img src="${design.url}" alt="${design.title}">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.95rem;">${design.title}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${design.desc || ''}</div>
+                            </div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteDesign(${index})">حذف</button>
+                    </div>
+                `;
+            });
+        }
+
+        // دالة الحذف
+        function deleteDesign(index) {
+            if (confirm('هل أنت متأكد من حذف هذا التصميم؟')) {
+                let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+                allDesigns.splice(index, 1); // مسح العنصر المحدد
+                localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
+                loadAdminDesigns(); // إعادة تحميل القائمة وتحديثها
             }
         }
     </script>
