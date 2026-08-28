@@ -120,7 +120,7 @@
         <p id="login-error" class="error"></p>
     </div>
 
-    <!-- لوحة التحكم الفعلية -->
+    <!-- لوحة التحكم الفعلية (للرفع) -->
     <div id="admin-panel" class="box hidden" style="max-width: 500px;">
         <h2>إضافة تصميم جديد</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
@@ -130,7 +130,76 @@
         <p id="status"></p>
     </div>
 
-    <script src="admin-script.js"></script>
+    <script>
+        const CORRECT_PASSWORD = "nabil123";
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('adminPassword');
+            const toggleBtn = document.querySelector('.toggle-password');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.innerText = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.innerText = '👁️';
+            }
+        }
+
+        function checkPassword() {
+            const pass = document.getElementById('adminPassword').value.trim();
+            const errorText = document.getElementById('login-error');
+
+            if (pass === CORRECT_PASSWORD) {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('admin-panel').classList.remove('hidden');
+            } else {
+                errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
+            }
+        }
+
+        async function uploadDesign() {
+            const title = document.getElementById('designTitle').value;
+            const desc = document.getElementById('designDesc').value;
+            const fileInput = document.getElementById('designImage');
+            const status = document.getElementById('status');
+
+            if (!title || fileInput.files.length === 0) {
+                alert('من فضلك اكتب العنوان واختر الصورة!');
+                return;
+            }
+
+            status.innerText = 'جاري رفع الصورة ونشرها... ⏳';
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            try {
+                const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const imageUrl = data.data.url;
+                    let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+                    allDesigns.unshift({ title, desc, url: imageUrl });
+                    localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
+
+                    status.innerText = 'تم النشر بنجاح! 🎉 حدد صفحة الموقع الرئيسية لرؤية التغيير.';
+                    document.getElementById('designTitle').value = '';
+                    document.getElementById('designDesc').value = '';
+                    fileInput.value = '';
+                } else {
+                    status.innerText = 'فشل الرفع، حاول مرة أخرى.';
+                }
+            } catch (error) {
+                status.innerText = 'حدث خطأ في الاتصال.';
+                console.error(error);
+            }
+        }
+    </script>
 </body>
 
 </html>
