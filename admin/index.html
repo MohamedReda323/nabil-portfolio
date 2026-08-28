@@ -171,8 +171,6 @@
 
     <script>
         const CORRECT_PASSWORD = "nabil123";
-
-        // بيانات السحابة الخاصة بك
         const BIN_ID = "6a90da54f5f4af5e294bdd8f";
         const API_KEY = "$2a$10$4wACAkCehi/kP0C.y2pnZO01Awruy6s95q/NLDwvyobT0nZCoaFu";
 
@@ -201,7 +199,6 @@
             }
         }
 
-        // تحميل التصاميم من السحابة للوحة التحكم
         async function loadAdminDesignsCloud() {
             const listContainer = document.getElementById('designs-list');
             try {
@@ -236,7 +233,30 @@
             }
         }
 
-        // رفع تصميم جديد للسحابة
+        // دالة ضغط الصورة لتصبح خفيفة ومناسبة للسحابة
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // تصغير العرض الأقصى لضمان خفة الحجم
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // تحويل الصورة لـ jpeg بجودة 0.7 لتكون صغيرة جداً وسريعة
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    callback(compressedDataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         async function uploadDesignCloud() {
             const title = document.getElementById('designTitle').value.trim();
             const desc = document.getElementById('designDesc').value.trim();
@@ -248,20 +268,20 @@
                 return;
             }
 
-            status.innerText = 'جاري الرفع للسحابة... ⏳';
+            status.innerText = 'جاري ضغط ورفع الصورة للسحابة... ⏳';
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-
-            reader.onload = async function (event) {
-                const base64Image = event.target.result;
-
+            compressImage(fileInput.files[0], async function (base64Image) {
                 try {
                     const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                         headers: { 'X-Master-Key': API_KEY }
                     });
                     const getData = await getRes.json();
                     let allDesigns = getData.record || [];
+
+                    // لو الداتا مش مصفوفة، نخليها مصفوفة فاضية عشان منقوعش في خطأ
+                    if (!Array.isArray(allDesigns)) {
+                        allDesigns = [];
+                    }
 
                     allDesigns.unshift({
                         title: title !== '' ? title : 'تصميم بدون عنوان',
@@ -285,16 +305,14 @@
                         fileInput.value = '';
                         loadAdminDesignsCloud();
                     } else {
-                        status.innerText = 'فشل التحديث على السحابة.';
+                        status.innerText = 'فشل التحديث على السحابة (تأكد من الاتصال أو حجم البيانات).';
                     }
                 } catch (err) {
                     status.innerText = 'حدث خطأ في الاتصال بالإنترنت.';
                 }
-            };
-            reader.readAsDataURL(file);
+            });
         }
 
-        // حذف تصميم من السحابة
         async function deleteDesignCloud(index) {
             if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً من الموقع لكل الزوار؟')) {
                 try {
@@ -304,19 +322,21 @@
                     const getData = await getRes.json();
                     let allDesigns = getData.record || [];
 
-                    allDesigns.splice(index, 1);
+                    if (Array.isArray(allDesigns)) {
+                        allDesigns.splice(index, 1);
 
-                    const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': API_KEY
-                        },
-                        body: JSON.stringify(allDesigns)
-                    });
+                        const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': API_KEY
+                            },
+                            body: JSON.stringify(allDesigns)
+                        });
 
-                    if (updateRes.ok) {
-                        loadAdminDesignsCloud();
+                        if (updateRes.ok) {
+                            loadAdminDesignsCloud();
+                        }
                     }
                 } catch (e) {
                     alert('حدث خطأ أثناء الحذف.');
