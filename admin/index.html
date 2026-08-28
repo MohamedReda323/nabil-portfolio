@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم المحمية</title>
+    <title>لوحة التحكم السحابية</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -154,23 +154,27 @@
         <p id="login-error" class="error"></p>
     </div>
 
-    <!-- لوحة التحكم الفعالة -->
+    <!-- لوحة التحكم السحابية -->
     <div id="admin-panel" class="box hidden">
-        <h2 class="center">إضافة تصميم جديد</h2>
+        <h2 class="center">إضافة تصميم جديد (سحابي)</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
-        <button class="action-btn" onclick="uploadDesignLocally()">حفظ ونشر التصميم</button>
+        <button class="action-btn" onclick="uploadDesignCloud()">رفع ونشر سحابياً</button>
         <p id="status"></p>
 
         <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
 
-        <h2 class="center">إدارة التصاميم الحالية</h2>
-        <div id="designs-list"></div>
+        <h2 class="center">إدارة التصاميم السحابية</h2>
+        <div id="designs-list">جاري تحميل التصاميم...</div>
     </div>
 
     <script>
         const CORRECT_PASSWORD = "nabil123";
+
+        // بيانات السحابة الخاصة بك
+        const BIN_ID = "6a90da54f5f4af5e294bdd8f";
+        const API_KEY = "$2a$10$4wACAkCehi/kP0C.y2pnZO01Awruy6s95q/NLDwvyobT0nZCoaFu";
 
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
@@ -191,14 +195,49 @@
             if (pass === CORRECT_PASSWORD) {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
-                loadAdminDesigns();
+                loadAdminDesignsCloud();
             } else {
                 errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
             }
         }
 
-        // حفظ الصورة مباشرة محلياً بدون الحاجة لـ API خارجي يفشل
-        function uploadDesignLocally() {
+        // تحميل التصاميم من السحابة للوحة التحكم
+        async function loadAdminDesignsCloud() {
+            const listContainer = document.getElementById('designs-list');
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                const data = await res.json();
+                let allDesigns = data.record || [];
+
+                if (allDesigns.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
+                    return;
+                }
+
+                listContainer.innerHTML = '';
+                allDesigns.forEach((design, index) => {
+                    listContainer.innerHTML += `
+                        <div class="design-item">
+                            <div class="design-info">
+                                <img src="${design.url}" alt="${design.title}">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 0.95rem;">${design.title}</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${design.desc || ''}</div>
+                                </div>
+                            </div>
+                            <button class="delete-btn" onclick="deleteDesignCloud(${index})">حذف</button>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                listContainer.innerHTML = '<p class="error">فشل تحميل التصاميم من السحابة.</p>';
+            }
+        }
+
+        // رفع تصميم جديد للسحابة
+        async function uploadDesignCloud() {
             const title = document.getElementById('designTitle').value.trim();
             const desc = document.getElementById('designDesc').value.trim();
             const fileInput = document.getElementById('designImage');
@@ -209,69 +248,79 @@
                 return;
             }
 
-            status.innerText = 'جاري حفظ التصميم... ⏳';
+            status.innerText = 'جاري الرفع للسحابة... ⏳';
 
             const file = fileInput.files[0];
             const reader = new FileReader();
 
-            reader.onload = function (event) {
-                const base64Image = event.target.result; // تحويل الصورة لكود نصي
+            reader.onload = async function (event) {
+                const base64Image = event.target.result;
 
-                let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
-                allDesigns.unshift({
-                    title: title !== '' ? title : 'تصميم بدون عنوان',
-                    desc: desc,
-                    url: base64Image
-                });
+                try {
+                    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': API_KEY }
+                    });
+                    const getData = await getRes.json();
+                    let allDesigns = getData.record || [];
 
-                localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
+                    allDesigns.unshift({
+                        title: title !== '' ? title : 'تصميم بدون عنوان',
+                        desc: desc,
+                        url: base64Image
+                    });
 
-                status.innerText = 'تم النشر بنجاح! 🎉';
-                document.getElementById('designTitle').value = '';
-                document.getElementById('designDesc').value = '';
-                fileInput.value = '';
-                loadAdminDesigns();
+                    const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(allDesigns)
+                    });
+
+                    if (updateRes.ok) {
+                        status.innerText = 'تم النشر سحابياً بنجاح! 🎉';
+                        document.getElementById('designTitle').value = '';
+                        document.getElementById('designDesc').value = '';
+                        fileInput.value = '';
+                        loadAdminDesignsCloud();
+                    } else {
+                        status.innerText = 'فشل التحديث على السحابة.';
+                    }
+                } catch (err) {
+                    status.innerText = 'حدث خطأ في الاتصال بالإنترنت.';
+                }
             };
-
-            reader.onerror = function () {
-                status.innerText = 'حدث خطأ أثناء قراءة الصورة.';
-            };
-
             reader.readAsDataURL(file);
         }
 
-        function loadAdminDesigns() {
-            const listContainer = document.getElementById('designs-list');
-            let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+        // حذف تصميم من السحابة
+        async function deleteDesignCloud(index) {
+            if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً من الموقع لكل الزوار؟')) {
+                try {
+                    const getRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': API_KEY }
+                    });
+                    const getData = await getRes.json();
+                    let allDesigns = getData.record || [];
 
-            if (allDesigns.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
-                return;
-            }
+                    allDesigns.splice(index, 1);
 
-            listContainer.innerHTML = '';
-            allDesigns.forEach((design, index) => {
-                listContainer.innerHTML += `
-                    <div class="design-item">
-                        <div class="design-info">
-                            <img src="${design.url}" alt="${design.title}">
-                            <div>
-                                <div style="font-weight: bold; font-size: 0.95rem;">${design.title}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${design.desc || ''}</div>
-                            </div>
-                        </div>
-                        <button class="delete-btn" onclick="deleteDesign(${index})">حذف</button>
-                    </div>
-                `;
-            });
-        }
+                    const updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(allDesigns)
+                    });
 
-        function deleteDesign(index) {
-            if (confirm('هل أنت متأكد من حذف هذا التصميم؟')) {
-                let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
-                allDesigns.splice(index, 1);
-                localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
-                loadAdminDesigns();
+                    if (updateRes.ok) {
+                        loadAdminDesignsCloud();
+                    }
+                } catch (e) {
+                    alert('حدث خطأ أثناء الحذف.');
+                }
             }
         }
     </script>
