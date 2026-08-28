@@ -98,7 +98,6 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.85rem;
-            transition: 0.3s;
         }
 
         .delete-btn:hover {
@@ -154,7 +153,6 @@
 
 <body>
 
-    <!-- شاشة تسجيل الدخول -->
     <div id="login-box" class="box center" style="max-width: 400px; margin: 80px auto;">
         <h2>تسجيل دخول الإدارة</h2>
         <div class="password-container">
@@ -165,25 +163,24 @@
         <p id="login-error" class="error" style="font-size: 0.85rem; margin-top: 10px;"></p>
     </div>
 
-    <!-- لوحة التحكم -->
     <div id="admin-panel" class="box hidden">
-        <h2 class="center">إدارة ونشر التصاميم (النظام الجذري الآمن)</h2>
+        <h2 class="center">إدارة ونشر التصاميم (السحابي المباشر)</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
-        <button class="action-btn" onclick="processAndUpload()">نشر التصميم فوراً 🚀</button>
+        <button class="action-btn" onclick="processAndUpload()">نشر التصميم للسحابة 🚀</button>
         <p id="status"></p>
 
         <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;">
 
-        <h2 class="center">التصاميم المنشورة حالياً</h2>
-        <div id="designs-list">جاري التحميل...</div>
+        <h2 class="center">التصاميم المنشورة سحابياً</h2>
+        <div id="designs-list">جاري جلب البيانات من السحابة...</div>
     </div>
 
     <script>
         const CORRECT_PASSWORD = "nabil123";
-        // مفتاح التخزين الموحد الذي لا يخفق أبداً ويضمن مزامنة تامة بين الإدارة والموقع
-        const STORAGE_KEY = "nabil_cloud_designs_v2";
+        const BIN_ID = "6a90da54f5f4af5e294bdd8f";
+        const API_KEY = "$2a$10$4wACAeCehi/kP0C.y2pnZ001Awruy6s95q/NLDwvyob7t0nZCoaFu";
 
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
@@ -204,37 +201,28 @@
             if (pass === CORRECT_PASSWORD) {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
-                renderDesigns();
+                fetchCloudDesigns();
             } else {
                 errorText.innerText = '❌ كلمة المرور غير صحيحة.';
             }
         }
 
-        // جلب البيانات من التخزين السحابي المحلي المضمون
-        function getStoredDesigns() {
-            try {
-                const data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        // حفظ البيانات بأمان تام
-        function saveStoredDesigns(designs) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(designs));
-                return true;
-            } catch (e) {
-                alert('تحذير: مساحة التخزين ممتلئة تقريباً، حاول رفع صور بأحجام أصغر.');
-                return false;
-            }
-        }
-
-        function renderDesigns() {
+        async function fetchCloudDesigns() {
             const listContainer = document.getElementById('designs-list');
-            const designs = getStoredDesigns();
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                const result = await response.json();
+                const designs = result.record.designs || [];
+                renderList(designs);
+            } catch (e) {
+                listContainer.innerHTML = '<p class="error">فشل الاتصال بالسحابة لجلب التصاميم.</p>';
+            }
+        }
 
+        function renderList(designs) {
+            const listContainer = document.getElementById('designs-list');
             if (designs.length === 0) {
                 listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 0.9rem;">لا توجد تصميمات مرفوعة حالياً.</p>';
                 return;
@@ -257,23 +245,41 @@
             });
         }
 
-        // معالجة وضغط الصورة باحترافية شديدة لمنع أي مشاكل حجم
+        async function updateCloudStorage(newDesigns) {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ designs: newDesigns })
+                });
+
+                if (response.ok) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (e) {
+                return false;
+            }
+        }
+
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function (e) {
                 const img = new Image();
                 img.onload = function () {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 500; // حجم مثالي يجمع بين الوضوح التام والخفة المفرطة
+                    const MAX_WIDTH = 500;
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
-
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                    // ضغط عالي الجودة بصيغة JPEG
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     callback(compressedDataUrl);
                 };
                 img.src = e.target.result;
@@ -281,7 +287,7 @@
             reader.readAsDataURL(file);
         }
 
-        function processAndUpload() {
+        async function processAndUpload() {
             const title = document.getElementById('designTitle').value.trim();
             const desc = document.getElementById('designDesc').value.trim();
             const fileInput = document.getElementById('designImage');
@@ -295,38 +301,61 @@
 
             status.className = '';
             status.style.color = '#38bdf8';
-            status.innerText = '⏳ جاري المعالجة والنشر الفوري...';
+            status.innerText = '⏳ جاري ضغط الصورة والرفع للسحابة...';
 
-            compressImage(fileInput.files[0], function (base64Image) {
-                const designs = getStoredDesigns();
+            compressImage(fileInput.files[0], async function (base64Image) {
+                try {
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': API_KEY }
+                    });
+                    const result = await res.json();
+                    let designs = result.record.designs || [];
 
-                designs.unshift({
-                    title: title !== '' ? title : 'تصميم بدون عنوان',
-                    desc: desc,
-                    url: base64Image,
-                    date: new Date().toISOString()
-                });
+                    designs.unshift({
+                        title: title !== '' ? title : 'تصميم بدون عنوان',
+                        desc: desc,
+                        url: base64Image,
+                        date: new Date().toISOString()
+                    });
 
-                if (saveStoredDesigns(designs)) {
-                    status.className = 'success';
-                    status.innerText = '🎉 تم نشر التصميم بنجاح وبدون أي أخطاء!';
-                    document.getElementById('designTitle').value = '';
-                    document.getElementById('designDesc').value = '';
-                    fileInput.value = '';
-                    renderDesigns();
-                } else {
+                    const success = await updateCloudStorage(designs);
+                    if (success) {
+                        status.className = 'success';
+                        status.innerText = '🎉 تم رفع النشر للسحابة بنجاح!';
+                        document.getElementById('designTitle').value = '';
+                        document.getElementById('designDesc').value = '';
+                        fileInput.value = '';
+                        renderList(designs);
+                    } else {
+                        status.className = 'error';
+                        status.innerText = '❌ فشل الحفظ بالسحابة.';
+                    }
+                } catch (err) {
                     status.className = 'error';
-                    status.innerText = '❌ فشل الحفظ، المساحة ممتلئة.';
+                    status.innerText = '❌ حدث خطأ أثناء الاتصال.';
                 }
             });
         }
 
-        function deleteDesign(index) {
-            if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً؟')) {
-                let designs = getStoredDesigns();
-                designs.splice(index, 1);
-                saveStoredDesigns(designs);
-                renderDesigns();
+        async function deleteDesign(index) {
+            if (confirm('هل أنت متأكد من حذف هذا التصميم نهائياً من السحابة؟')) {
+                try {
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': API_KEY }
+                    });
+                    const result = await res.json();
+                    let designs = result.record.designs || [];
+
+                    designs.splice(index, 1);
+                    const success = await updateCloudStorage(designs);
+                    if (success) {
+                        renderList(designs);
+                    } else {
+                        alert('فشل الحذف من السحابة.');
+                    }
+                } catch (e) {
+                    alert('خطأ في الاتصال.');
+                }
             }
         }
     </script>
