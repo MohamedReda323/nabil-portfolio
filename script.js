@@ -16,10 +16,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+        method: 'GET',
         headers: {
           'X-Master-Key': API_KEY
         }
       });
+
+      if (!response.ok) {
+        throw new Error(`خطأ في الخادم: ${response.status}`);
+      }
+
       const result = await response.json();
 
       // قراءة البيانات كمصفوفة مباشرة من السحابة
