@@ -213,10 +213,15 @@
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
+
+                if (!response.ok) throw new Error('فشل الاستجابة من السحابة');
+
                 const result = await response.json();
-                const designs = result.record.designs || [];
+                // قراءة البيانات كمصفوفة مباشرة
+                const designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
                 renderList(designs);
             } catch (e) {
+                console.error(e);
                 listContainer.innerHTML = '<p class="error">فشل الاتصال بالسحابة لجلب التصاميم.</p>';
             }
         }
@@ -246,7 +251,6 @@
         }
 
         async function updateCloudStorage(newDesigns) {
-            const status = document.getElementById('status');
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: 'PUT',
@@ -254,14 +258,10 @@
                         'Content-Type': 'application/json',
                         'X-Master-Key': API_KEY
                     },
-                    body: JSON.stringify({ designs: newDesigns })
+                    body: JSON.stringify(newDesigns) // إرسال المصفوفة مباشرة
                 });
 
-                if (response.ok) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return response.ok;
             } catch (e) {
                 return false;
             }
@@ -309,7 +309,7 @@
                         headers: { 'X-Master-Key': API_KEY }
                     });
                     const result = await res.json();
-                    let designs = result.record.designs || [];
+                    let designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
 
                     designs.unshift({
                         title: title !== '' ? title : 'تصميم بدون عنوان',
@@ -344,7 +344,7 @@
                         headers: { 'X-Master-Key': API_KEY }
                     });
                     const result = await res.json();
-                    let designs = result.record.designs || [];
+                    let designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
 
                     designs.splice(index, 1);
                     const success = await updateCloudStorage(designs);
