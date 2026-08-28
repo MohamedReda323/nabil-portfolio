@@ -24,7 +24,43 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         }
 
-        input,
+        .password-container {
+            position: relative;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .password-container input {
+            width: 100%;
+            padding: 12px 45px 12px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 6px;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .toggle-password {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            width: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        .toggle-password:hover {
+            color: #38bdf8;
+        }
+
+        input[type="text"]:not(#adminPassword),
         textarea {
             width: 100%;
             padding: 12px;
@@ -36,7 +72,7 @@
             box-sizing: border-box;
         }
 
-        button {
+        button.action-btn {
             background: #38bdf8;
             color: #0f172a;
             font-weight: bold;
@@ -49,7 +85,7 @@
             transition: 0.3s;
         }
 
-        button:hover {
+        button.action-btn:hover {
             background: #0ea5e9;
         }
 
@@ -76,22 +112,24 @@
     <!-- شاشة تسجيل الدخول -->
     <div id="login-box" class="box">
         <h2>تسجيل دخول الإدارة</h2>
-        <input type="password" id="adminPassword" placeholder="اكتب كلمة المرور">
-        <button onclick="checkPassword()">دخول</button>
+        <div class="password-container">
+            <input type="password" id="adminPassword" placeholder="اكتب كلمة المرور">
+            <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">👁️</button>
+        </div>
+        <button class="action-btn" onclick="checkPassword()">دخول</button>
         <p id="login-error" class="error"></p>
     </div>
 
-    <!-- لوحة التحكم الفعلية (مخفية لحين كتابة الباسورد) -->
+    <!-- لوحة التحكم الفعلية -->
     <div id="admin-panel" class="box hidden" style="max-width: 500px;">
         <h2>إضافة تصميم جديد</h2>
         <input type="text" id="designTitle" placeholder="عنوان التصميم">
         <textarea id="designDesc" placeholder="وصف التصميم والتقنيات..."></textarea>
         <input type="file" id="designImage" accept="image/*">
-        <button onclick="uploadDesign()">رفع ونشر التصميم</button>
+        <button class="action-btn" onclick="uploadDesign()">رفع ونشر التصميم</button>
         <p id="status"></p>
     </div>
 
-    <!-- ربط السكريبت الخارجي -->
     <script src="admin-script.js"></script>
 </body>
 
