@@ -49,32 +49,44 @@ document.addEventListener('DOMContentLoaded', () => {
 // حط هنا كلمة المرور السرية
 // كود عرض التصاميم المضافة تلقائياً في الموقع الرئيسي
 // كود عرض الحذف والرفع المباشر من الـ LocalStorage لموقع نبيل بورتفوليو
-document.addEventListener('DOMContentLoaded', () => {
+// كود جلب التصاميم سحابياً وعرضها لكل الزوار في الموقع الأساسي
+document.addEventListener('DOMContentLoaded', async () => {
   const portfolioGrid = document.getElementById('portfolio-grid');
   const emptyMessage = document.getElementById('empty-message');
 
   if (!portfolioGrid) return;
 
-  let savedDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+  const BIN_ID = "6a90da54f5f4af5e294bdd8f";
+  const API_KEY = "$2a$10$4wACAkCehi/kP0C.y2pnZO01Awruy6s95q/NLDwvyobT0nZCoaFu";
 
-  if (savedDesigns.length === 0) {
-    if (emptyMessage) emptyMessage.style.display = 'block';
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    const data = await res.json();
+    let savedDesigns = data.record || [];
+
+    if (savedDesigns.length === 0) {
+      if (emptyMessage) emptyMessage.style.display = 'block';
+      portfolioGrid.innerHTML = '';
+      return;
+    }
+
+    if (emptyMessage) emptyMessage.style.display = 'none';
     portfolioGrid.innerHTML = '';
-    return;
-  }
 
-  if (emptyMessage) emptyMessage.style.display = 'none';
-  portfolioGrid.innerHTML = '';
-
-  savedDesigns.forEach(design => {
-    portfolioGrid.innerHTML += `
-            <div class="portfolio-card" style="background: var(--bg-card, #1e293b); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color, #334155); text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                <img src="${design.url}" alt="${design.title}" style="width: 100%; height: 240px; object-fit: cover; cursor: pointer;" onclick="openLightbox('${design.url}', '${design.title}', '${design.desc || ''}')">
-                <div style="padding: 20px;">
-                    <h3 style="color: var(--text-main, #fff); margin-bottom: 10px; font-size: 1.2rem;">${design.title}</h3>
-                    <p style="color: var(--text-muted, #94a3b8); font-size: 0.95rem; line-height: 1.5;">${design.desc || ''}</p>
+    savedDesigns.forEach(design => {
+      portfolioGrid.innerHTML += `
+                <div class="portfolio-card" style="background: var(--bg-card, #1e293b); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color, #334155); text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                    <img src="${design.url}" alt="${design.title}" style="width: 100%; height: 240px; object-fit: cover;">
+                    <div style="padding: 20px;">
+                        <h3 style="color: var(--text-main, #fff); margin-bottom: 10px; font-size: 1.2rem;">${design.title}</h3>
+                        <p style="color: var(--text-muted, #94a3b8); font-size: 0.95rem; line-height: 1.5;">${design.desc || ''}</p>
+                    </div>
                 </div>
-            </div>
-        `;
-  });
+            `;
+    });
+  } catch (error) {
+    console.error("خطأ في جلب التصاميم من السحابة:", error);
+  }
 });
