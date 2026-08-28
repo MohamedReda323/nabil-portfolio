@@ -47,17 +47,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 // حط هنا كلمة المرور السرية
-const CORRECT_PASSWORD = "nabil123"; // تقدر تغيرها زي ما تحب
+const CORRECT_PASSWORD = "nabil123";
+
+// دالة إظهار وإخفاء الباسورد بالعين
+function togglePasswordVisibility() {
+  const passwordInput = document.getElementById('adminPassword');
+  const toggleBtn = document.querySelector('.toggle-password');
+
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleBtn.innerText = '🙈'; // شكل العين وهي مقفولة/متبدلة
+  } else {
+    passwordInput.type = 'password';
+    toggleBtn.innerText = '👁️'; // شكل العين العادية
+  }
+}
 
 function checkPassword() {
-  const pass = document.getElementById('adminPassword').value;
+  const pass = document.getElementById('adminPassword').value.trim();
   const errorText = document.getElementById('login-error');
 
   if (pass === CORRECT_PASSWORD) {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-panel').classList.remove('hidden');
   } else {
-    errorText.innerText = 'كلمة المرور غير صحيحة، حاول مرة أخرى.';
+    errorText.innerText = '❌ كلمة المرور غير صحيحة، حاول مرة أخرى.';
   }
 }
 
@@ -78,15 +92,6 @@ async function uploadDesign() {
   formData.append('image', fileInput.files[0]);
 
   try {
-    const response = - await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
-      method: 'POST',
-      body: formData
-    });
-
-    // استبدل علامة الناقص (-) الزائدة بالطلب الصحيح لو نسختها، الخط اللي تحت هو الصح:
-    // const response = await fetch(...);
-
-    // تعديل الطلب الصحيح للـ API:
     const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
       method: 'POST',
       body: formData
@@ -95,10 +100,12 @@ async function uploadDesign() {
 
     if (data.success) {
       const imageUrl = data.data.url;
-      let designs = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+      let designs = JSON.parse(localStorage.IconStorage || localStorage.getItem('nabil_designs')) || [];
 
-      designs.unshift({ title, desc, url: imageUrl });
-      localStorage.setItem('nabil_designs', JSON.stringify(designs));
+      // تصحيح مفتاح التخزين ليتطابق مع باقي الموقع
+      let allDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+      allDesigns.unshift({ title, desc, url: imageUrl });
+      localStorage.setItem('nabil_designs', JSON.stringify(allDesigns));
 
       status.innerText = 'تم النشر بنجاح! 🎉 حدد صفحة الموقع الرئيسية لرؤية التغيير.';
       document.getElementById('designTitle').value = '';
