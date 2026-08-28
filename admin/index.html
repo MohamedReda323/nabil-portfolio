@@ -211,18 +211,22 @@
             const listContainer = document.getElementById('designs-list');
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
                 });
 
-                if (!response.ok) throw new Error('فشل الاستجابة من السحابة');
+                if (!response.ok) {
+                    throw new Error(`خطأ في الخادم: ${response.status}`);
+                }
 
                 const result = await response.json();
-                // قراءة البيانات كمصفوفة مباشرة
                 const designs = Array.isArray(result.record) ? result.record : (result.record.designs || []);
                 renderList(designs);
             } catch (e) {
-                console.error(e);
-                listContainer.innerHTML = '<p class="error">فشل الاتصال بالسحابة لجلب التصاميم.</p>';
+                console.error("تفاصيل الخطأ:", e);
+                listContainer.innerHTML = `<p class="error">فشل الاتصال بالسحابة: ${e.message}</p>`;
             }
         }
 
@@ -258,7 +262,7 @@
                         'Content-Type': 'application/json',
                         'X-Master-Key': API_KEY
                     },
-                    body: JSON.stringify(newDesigns) // إرسال المصفوفة مباشرة
+                    body: JSON.stringify(newDesigns)
                 });
 
                 return response.ok;
