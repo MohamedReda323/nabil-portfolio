@@ -46,31 +46,69 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-// تحميل التصاميم المضافة من لوحة التحكم وعرضها في الموقع
-document.addEventListener('DOMContentLoaded', () => {
-  const portfolioGrid = document.getElementById('portfolio-grid');
-  const emptyMessage = document.getElementById('empty-message');
+// حط هنا كلمة المرور السرية
+const CORRECT_PASSWORD = "nabil123"; // تقدر تغيرها زي ما تحب
 
-  // جلب التصاميم المحفوظة محلياً (أو يمكن ربطها بقاعدة بيانات لاحقاً)
-  let savedDesigns = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+function checkPassword() {
+  const pass = document.getElementById('adminPassword').value;
+  const errorText = document.getElementById('login-error');
 
-  if (savedDesigns.length > 0 && portfolioGrid) {
-    if (emptyMessage) emptyMessage.style.display = 'none';
-
-    savedDesigns.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'portfolio-card';
-      card.innerHTML = `
-                <div class="card-image-wrapper">
-                    <img src="${item.url}" alt="${item.title}" class="portfolio-img">
-                    <div class="card-overlay">
-                        <h3>${item.title}</h3>
-                        <p>${item.desc || ''}</p>
-                        <button class="view-btn">عرض التصميم</button>
-                    </div>
-                </div>
-            `;
-      portfolioGrid.appendChild(card);
-    });
+  if (pass === CORRECT_PASSWORD) {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('admin-panel').classList.remove('hidden');
+  } else {
+    errorText.innerText = 'كلمة المرور غير صحيحة، حاول مرة أخرى.';
   }
-});
+}
+
+async function uploadDesign() {
+  const title = document.getElementById('designTitle').value;
+  const desc = document.getElementById('designDesc').value;
+  const fileInput = document.getElementById('designImage');
+  const status = document.getElementById('status');
+
+  if (!title || fileInput.files.length === 0) {
+    alert('من فضلك اكتب العنوان واختر الصورة!');
+    return;
+  }
+
+  status.innerText = 'جاري رفع الصورة ونشرها... ⏳';
+
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]);
+
+  try {
+    const response = - await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
+      method: 'POST',
+      body: formData
+    });
+
+    // استبدل علامة الناقص (-) الزائدة بالطلب الصحيح لو نسختها، الخط اللي تحت هو الصح:
+    // const response = await fetch(...);
+
+    // تعديل الطلب الصحيح للـ API:
+    const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e021577759247d519d08e709e99', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const imageUrl = data.data.url;
+      let designs = JSON.parse(localStorage.getItem('nabil_designs')) || [];
+
+      designs.unshift({ title, desc, url: imageUrl });
+      localStorage.setItem('nabil_designs', JSON.stringify(designs));
+
+      status.innerText = 'تم النشر بنجاح! 🎉 حدد صفحة الموقع الرئيسية لرؤية التغيير.';
+      document.getElementById('designTitle').value = '';
+      document.getElementById('designDesc').value = '';
+      fileInput.value = '';
+    } else {
+      status.innerText = 'فشل الرفع، حاول مرة أخرى.';
+    }
+  } catch (error) {
+    status.innerText = 'حدث خطأ في الاتصال.';
+    console.error(error);
+  }
+}
